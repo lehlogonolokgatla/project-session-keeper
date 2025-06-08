@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ project.name }} Details</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        h1, h2 { color: #333; }
+        .project-details {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .project-details p { margin: 5px 0; }
+
+        .session-list { margin-top: 20px; }
+        .session-item {
+            background-color: #fff;
+            border: 1px solid #eee;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .session-item p { margin: 5px 0; }
+        .session-item pre {
+            background-color: #e9e9e9;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap; /* Wrap long lines */
+            word-wrap: break-word; /* Break long words */
+        }
+        .no-sessions { font-style: italic; color: #666; }
+
+        .action-buttons {
+            display: flex; /* Use flexbox for layout */
+            align-items: flex-start; /* Align items to the top */
+            gap: 15px; /* Space between items */
+            margin-bottom: 20px;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .action-buttons button {
+            padding: 10px 18px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .start-button { background-color: #28a745; color: white; }
+        .start-button:hover { background-color: #218838; }
+        .stop-button { background-color: #dc3545; color: white; }
+        .stop-button:hover { background-color: #c82333; }
+
+        .action-buttons form div { margin-bottom: 8px; }
+        .action-buttons label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .action-buttons textarea {
+            width: 350px; /* Fixed width for textarea */
+            max-width: 100%; /* Ensure it doesn't overflow */
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            resize: vertical; /* Allow vertical resizing */
+        }
+
+        /* Flash Messages styling */
+        .flash-message {
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .flash-success { background-color: #28a745; color: white; }
+        .flash-warning { background-color: #ffc107; color: #333; }
+        .flash-error { background-color: #dc3545; color: white; }
+
+        a { text-decoration: none; color: #007bff; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>{{ project.name }} ({{ project.type }})</h1>
+    <div class="project-details">
+        <p><strong>Hourly Rate:</strong> R {{ "%.2f"|format(project.hourly_rate) }}</p>
+        <p><strong>Total Hours:</strong> {{ "%.2f"|format(project.total_hours) }}</p>
+        <p><strong>Estimated Cost:</strong> R {{ "%.2f"|format(project.estimated_cost) }}</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message flash-{{ category }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <h2>Sessions</h2>
+    <div class="action-buttons">
+        <form action="{{ url_for('start_session', project_id=project.id) }}" method="post" style="display:inline-block;">
+            <button type="submit" class="start-button">Start Session</button>
+        </form>
+
+        <form action="{{ url_for('end_session', project_id=project.id) }}" method="post" style="display:inline-block;">
+            <div style="margin-bottom: 5px;">
+                <label for="work_details">Work Details:</label>
+                <textarea id="work_details" name="work_details" rows="4" placeholder="e.g., Implemented user authentication, Fixed CSS bug on homepage"></textarea>
+            </div>
+            <button type="submit" class="stop-button">End Session</button>
+        </form>
+    </div>
+
+    <div class="session-list">
+        {% if project.sessions %}
+            {% for session in project.sessions|sort(attribute='start_time', reverse=True) %} {# Sort by start time, newest first #}
+                <div class="session-item">
+                    <p><strong>Started:</strong> {{ session.start_time.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    <p><strong>Ended:</strong> {% if session.end_time %}{{ session.end_time.strftime('%Y-%m-%d %H:%M:%S') }}{% else %}Active{% endif %}</p>
+                    <p><strong>Duration:</strong>
+                        {% if session.end_time %}
+                            {{ "%.2f"|format(session.duration_minutes / 3600) }} hours ({{ session.duration_minutes }} seconds)
+                        {% else %}
+                            (Ongoing)
+                        {% endif %}
+                    </p>
+                    {% if session.work_details %}
+                        <p><strong>Work Details:</strong></p>
+                        <pre>{{ session.work_details }}</pre>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="no-sessions">No sessions logged for this project yet.</p>
+        {% endif %}
+    </div>
+
+    <p><a href="{{ url_for('index') }}">Back to Project List</a></p>
+</body>
+</html>
